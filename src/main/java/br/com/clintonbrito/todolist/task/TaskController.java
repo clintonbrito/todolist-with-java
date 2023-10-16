@@ -57,14 +57,26 @@ public class TaskController {
     return tasks;
   }
 
-  // http://localhost:8080/tasks/87f84e8a-3bb6-48a2-883e-576cc829501c
+  // Example: http://localhost:8080/tasks/87f84e8a-3bb6-48a2-883e-576cc829501c
   @PutMapping("/{id}")
-  public TaskModel update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id) {
+  public ResponseEntity update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id) {
     var task = this.taskRepository.findById(id).orElse(null);
 
-    Utils.copyNonNullProperties(taskModel, task);
+    if(task == null) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body("Task not found");
+    }
 
-    return this.taskRepository.save(task);
+    var idUser = request.getAttribute("idUser");
+
+    if(!task.getIdUser().equals(idUser)) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body("You cannot change a task it's not yours");
+    }
+
+    Utils.copyNonNullProperties(taskModel, task);
+    var taskUpdated = this.taskRepository.save(task);
+    return ResponseEntity.ok().body(taskUpdated);
   }
 
 }
